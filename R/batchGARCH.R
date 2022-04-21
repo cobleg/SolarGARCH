@@ -13,10 +13,14 @@ library(githubinstall)
 githubinstall("purrr")
 
 library(broom)
+library(data.table)
 library(dplyr)
 library(dynlm)
+library(magrittr)
 library("purrr")
+library(stringr)
 library(strucchange)
+library(tidyr)
 
 df$Installations <- ts(df$Installations)
 
@@ -61,7 +65,9 @@ length(check.1) # get number of list elements
 length(fitted_means_models[[2]]) # 113 items in the second list
 
 # use map function to extract components of the nested lists: https://community.rstudio.com/t/extract-nested-list-from-all-elements-levels/60733
-test.1 <- map(fitted_means_models, ~.[["Area"]][["df_means"]][["residuals"]])
+test.1 <- fitted_means_models %>% unnest(c(Area, df_means))
+test.2 <- map(test.1$df_means, ~ keep(.x, .p = str_detect(names(.x), "residuals")))
+test.3 <- as.data.frame(map(test.2, ~ keep(.x, .p = str_detect(names(.x), "coefficients"))))
 
 Results <- data.frame(Area = rep(df.0, each = 85))
 Results$Residuals <- (unlist(lapply(fitted_means_models[[2]], "[", 2))) # get the residuals for each area
