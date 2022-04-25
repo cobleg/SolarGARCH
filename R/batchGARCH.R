@@ -10,7 +10,7 @@
 
 library(devtools)
 library(githubinstall)
-githubinstall("purrr")
+#githubinstall("purrr")
 
 library(broom)
 library(data.table)
@@ -45,7 +45,7 @@ lines(ci_ts)
 df.result <- dynlm(df.1$Installations[79:length(df.1$Installations)] ~ 1)
 
 # get the residuals
-as.numeric(df.result$residuals)
+residuals <- as.numeric(df.result$residuals)
 
 # given residuals, fit an ARCH model
 ehatsq <- ts(resid(df.result)^2)

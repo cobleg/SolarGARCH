@@ -20,16 +20,28 @@ library(purrr)
 library(tidyr)
 
 
-df <- as_tibble(df)  # dependency: run importFile.R to get the 'df' object
+df <- as_tibble(df)  %>% # dependency: run importFile.R to get the 'df' object
+  mutate(DateTime = as.Date(DateTime,  "%m-%d-%Y")) %>%
+  filter(DateTime >= as.Date("01-01-2013",  "%m-%d-%Y"))
 
 regressions <- df %>%
   nest(data = -Area) %>% 
   mutate(
-    fit = map(data, ~ dynlm(Installations[79:163] ~ 1, data = .x)),
+    fit = map(data, ~ dynlm(Installations ~ 1, data = .x)),
+    # residuals = map_dbl(.fitted)
     tidied = map(fit, tidy),
     glanced = map(fit, glance),
-    augmented = map(fit, augment)
-  )
+    augmented = map(fit, augment) 
+  ) 
 
-regressions2 <- regressions %>% 
-  unnest(tidied)
+residuals <- regressions %>%
+  unnest(augmented) %>%
+  select(!Installations) %>%
+  unnest(data)
+#  select(Area, data$DateTime, .resid)
+
+# given residuals, fit an ARCH model
+ehatsq <- ts(resid(df.result)^2)
+LGA.ARCH <- dynlm(ehatsq~L(ehatsq))
+summary(LGA.ARCH)
+LGA.ARCH$coefficients[1]
