@@ -37,11 +37,21 @@ regressions <- df %>%
 residuals <- regressions %>%
   unnest(augmented) %>%
   select(!Installations) %>%
-  unnest(data)
+  unnest(data) %>%
+  mutate(
+    e_hatsq = ts(.resid)^2
+  )
 #  select(Area, data$DateTime, .resid)
 
 # given residuals, fit an ARCH model
-ehatsq <- ts(resid(df.result)^2)
-LGA.ARCH <- dynlm(ehatsq~L(ehatsq))
+ARCH_models <- residuals %>%
+  nest(data = -Area) %>%
+  mutate(
+    fit = map(data, ~ dynlm(e_hatsq ~ L(e_hatsq), data = .x)),
+    tidied = map(fit, tidy),
+    glanced = map(fit, glance),
+    augmented = map(fit, augment) 
+  )
+    
 summary(LGA.ARCH)
 LGA.ARCH$coefficients[1]
