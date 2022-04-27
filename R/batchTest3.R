@@ -8,43 +8,39 @@
 #                      https://broom.tidymodels.org/articles/broom_and_dplyr.html
 
 # This is a test example demonstrating a workflow of estimating multivariate linear regression models in a batch process
-# variations from batchTest2.R:
-#   1. swapped lm for dynlm
-#   2. swapped mtcars for df
-#   3. swapped dependent variable wt for Installations[79:163]
+# variations from batchTest2.R
 
 library(broom)
 library(dplyr)
 library(dynlm)
 library(purrr)
 library(tidyr)
+library(tseries)
 
 
 df <- as_tibble(df)  %>% # dependency: run importFile.R to get the 'df' object
-  mutate(DateTime = as.Date(DateTime,  "%m-%d-%Y")) %>%
-  filter(DateTime >= as.Date("01-01-2013",  "%m-%d-%Y"))
+  mutate(DateTime = as.Date(DateTime,  "%m-%d-%Y")) # %>%
+  # filter(DateTime >= as.Date("01-01-2013",  "%m-%d-%Y"))
 
-regressions <- df %>%
-  nest(data = -Area) %>% 
+models.1 <- df %>%
+  nest(data = -Area) %>%
   mutate(
     fit = map(data, ~ dynlm(Installations ~ 1, data = .x)),
-    # residuals = map_dbl(.fitted)
     tidied = map(fit, tidy),
     glanced = map(fit, glance),
-    augmented = map(fit, augment) 
-  ) 
-
-residuals <- regressions %>%
-  unnest(augmented) %>%
-  select(!Installations) %>%
-  unnest(data) %>%
-  mutate(
-    e_hatsq = ts(.resid)^2
+    augmented = map(fit, augment)
   )
-#  select(Area, data$DateTime, .resid)
+
+models.2 <- models.1 %>%
+  unnest(augmented) %>%
+  select(Area, .resid)
+  
+ARCH.data <- models.2 %>%
+  mutate(e_hatsq = ts(.resid)^2) %>%
+  select(Area, e_hatsq)
 
 # given residuals, fit an ARCH model
-ARCH_models <- residuals %>%
+ARCH.models <- ARCH.data %>%
   nest(data = -Area) %>%
   mutate(
     fit = map(data, ~ dynlm(e_hatsq ~ L(e_hatsq), data = .x)),
@@ -53,5 +49,8 @@ ARCH_models <- residuals %>%
     augmented = map(fit, augment) 
   )
     
-summary(LGA.ARCH)
-LGA.ARCH$coefficients[1]
+summary <- ARCH.models %>%
+  unnest(tidied) %>%
+  select(Area, term, estimate) %>%
+  pivot_wider(names_from = term, values_from = estimate)
+
