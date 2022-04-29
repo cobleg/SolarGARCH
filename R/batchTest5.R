@@ -16,13 +16,23 @@ library(dplyr)
 library(purrr)
 library(tidyr)
 library(tseries)
+library(zoo)
 
 
-df <- tidyr::as_tibble(df)  %>% # dependency: run importFile.R to get the 'df' object
-  dplyr::mutate(DateTime = as.Date(DateTime,  "%m-%d-%Y")) # %>%
-  # filter(DateTime >= as.Date("01-01-2013",  "%m-%d-%Y"))
+df.1 <- df %>%
+  dplyr::group_by(Area) %>%
+  dplyr::mutate(
+    Installations = log(Installations)
+    )  %>%
+  dplyr::mutate(
+     Installations = ifelse(is.infinite(Installations), 0, Installations)  
+    ) %>%
+  dplyr::mutate(
+    Installations = tidyr::replace_na(Installations, 0)
+    ) %>%
+   filter(DateTime >= as.Date("01-01-2013",  "%m-%d-%Y"), !(Area == "Menzies (S)"))
 
-models.1 <- df %>%
+models.1 <- df.1 %>%
   tidyr::nest(data = -Area) %>%
   dplyr::mutate(
     fit = purrr::map(data, ~ tseries::garch( .x$Installations, order = c(0,2)), data = .x),
