@@ -22,3 +22,4 @@ In using R, I discovered other helpful libraries in the Tidyverse system that al
 - This would have been easy in SAS using the 'by' statement
 - I receive 50+ warnings when I use the 'dynlm' and 'tseries' libraries with 'broom'
 - The output CSV file is an input to a Ventity simulation model: https://ventity.biz/  
+- The journey led me deeper into the Tidyverse: https://youtu.be/rz3_FDVt9eg
